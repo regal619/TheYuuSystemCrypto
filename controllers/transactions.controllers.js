@@ -6,8 +6,13 @@ const { login, register } = require("../validations/user.validations.js");
 const { default: axios } = require("axios");
 const Transactions = require("../models/transactions.models.js");
 
-const getRoughTransactions = asyncHandler(async (req, res) => {
-    const transactions = await Transactions.find({})
+const getAllTransactions = asyncHandler(async (req, res) => {
+    const transactions = await Transactions.find({}).sort({ createdAt: -1 })
+    return res.status(200).json(new ApiResponse(200, { transactions }, "User is registered successfully"))
+})
+
+const getUserTransactions = asyncHandler(async (req, res) => {
+    const transactions = await Transactions.find({ user_id: req.user._id }).sort({ createdAt: -1 })
     return res.status(200).json(new ApiResponse(200, { transactions }, "User is registered successfully"))
 })
 
@@ -126,4 +131,4 @@ const donateIpn = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, { body: req.body }, "Transaction updated."))
 })
 
-module.exports = { getTransactions, createTransaction, successTransaction, cancelTransaction, donateIpn }
+module.exports = { getTransactions, getAllTransactions, getUserTransactions, createTransaction, successTransaction, cancelTransaction, donateIpn }

@@ -1,10 +1,12 @@
 const { Router } = require("express")
 const verifyJwt = require("../middlewares/auth.middleware.js")
-const { createTransaction, successTransaction, cancelTransaction, donateIpn, getTransactions } = require("../controllers/transactions.controllers.js")
+const { createTransaction, successTransaction, cancelTransaction, donateIpn, getTransactions, getUserTransactions, getAllTransactions } = require("../controllers/transactions.controllers.js")
 
 const router = Router()
 router.use(verifyJwt)
 
+router.route("/getUserTransactions").get(getUserTransactions)
+router.route("/getAllTransactions").get(getAllTransactions)
 router.route("/getTransactions").get(getTransactions)
 router.route("/create").post(createTransaction)
 router.route("/success").post(successTransaction)
