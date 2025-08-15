@@ -6,12 +6,50 @@ const { login, register } = require("../validations/user.validations.js");
 const { default: axios } = require("axios");
 const Transactions = require("../models/transactions.models.js");
 
-
-const getTransactions = asyncHandler(async (req, res) => {
-
+const getRoughTransactions = asyncHandler(async (req, res) => {
     const transactions = await Transactions.find({})
     return res.status(200).json(new ApiResponse(200, { transactions }, "User is registered successfully"))
 })
+
+const getTransactions = asyncHandler(async (req, res) => {
+    // Aggregate transactions by user_id and sort by total_amount descending
+    const transactions = await Transactions.aggregate([
+        {
+            $group: {
+                _id: "$user_id",
+                total_amount: { $sum: "$price_amount" },
+                total_transactions: { $sum: 1 },
+                transactions: { $push: "$$ROOT" }
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "_id",
+                foreignField: "_id",
+                as: "user"
+            }
+        },
+        {
+            $unwind: "$user"
+        },
+        {
+            $project: {
+                _id: 0,
+                user_id: "$_id",
+                full_name: "$user.full_name",
+                total_amount: 1,
+                total_transactions: 1,
+                transactions: 1
+            }
+        },
+        {
+            $sort: { total_amount: -1 }
+        }
+    ]);
+
+    return res.status(200).json(new ApiResponse(200, { transactions }, "Transactions summary by user"));
+});
 
 const createTransaction = asyncHandler(async (req, res) => {
     console.log(req.body);
