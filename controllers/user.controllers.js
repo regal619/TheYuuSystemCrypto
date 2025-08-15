@@ -88,7 +88,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     await sendEmail(user.email, subject, message)
 
-    return res.status(200).json(new ApiResponse(200, { accessToken }, "A verification code is sent to your email, please verify to activate your account"))
+    return res.status(200).json(new ApiResponse(200, { status: "otp" }, "A verification code is sent to your email, please verify to activate your account"))
 })
 
 // Route 2: verify user using POST "/api/v1/auth/verify"
@@ -168,7 +168,7 @@ const loginUser = asyncHandler(async (req, res) => {
         <p>Best regards,<br>The Yuu System</p>`
     await sendEmail(user.email, subject, message)
 
-    return res.status(200).json(new ApiResponse(200, { accessToken }, "A verification code is sent to your email, please verify to login to your account"))
+    return res.status(200).json(new ApiResponse(200, { status: "otp" }, "A verification code is sent to your email, please verify to login to your account"))
     // }
 
     // return res.status(200).json(new ApiResponse(200, { accessToken }, "User logged in successfully"))
