@@ -11,6 +11,12 @@ const userSchema = new mongoose.Schema(
             unique: true,
             trim: true,
         },
+        user_name: {
+            type: String,
+            required: true,
+            unique: true,
+            trim: true,
+        },
         full_name: {
             type: String,
             required: true,
@@ -21,49 +27,16 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true
         },
-        isAdmin: {
-            type: Boolean,
-            // default: false
-        },
-        isActivityCoordinator: {
-            type: Boolean,
-            default: false
-        },
-        activity_ids: {
-            type: Array,
-            default: null
-        },
-        church: {
-            type: String,
-            default: null
-        },
-        dashboard: {
-            type: Number,
-            enum: [0, 1],
-            default: 1
-        },
-        activity: {
-            type: Number,
-            enum: [0, 1],
-            default: 0
-        },
-        coordinators: {
-            type: Number,
-            enum: [0, 1],
-            default: 0
-        },
-        selected_participants: {
-            type: Number,
-            enum: [0, 1],
-            default: 1
-        },
-        user_id: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-            default: null
-        },
         refreshToken: {
             type: String,
+        },
+        verificationCode: {
+            type: String,
+            default: ""
+        },
+        isVerified: {
+            type: Boolean,
+            default: "false"
         },
         status: {
             type: Number,

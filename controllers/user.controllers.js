@@ -3,6 +3,16 @@ const { asyncHandler } = require("../utils/asyncHandler.js");
 const { ApiError } = require("../utils/ApiError.js");
 const { ApiResponse } = require("../utils/ApiResponse.js");
 const { login, register } = require("../validations/user.validations.js");
+const sendEmail = require("../utils/Email.js");
+
+// const backHost = process.env.Backend_HOST
+// const frontHost = process.env.Frontend_HOST
+const backHost = "http://localhost:2800"
+const frontHost = "http://localhost:5173"
+
+function generateVerificationCode() {
+    return Math.floor(100000 + Math.random() * 900000);
+}
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -22,25 +32,34 @@ const generateAccessAndRefreshToken = async (userId) => {
 
 const registerUser = asyncHandler(async (req, res) => {
     console.log(req.body);
+    console.log("Registering user...");
 
-    const { email } = req.body
+
+    const { email, user_name } = req.body
     const { error, value } = register.body.validate(req.body);
 
     if (error) {
         return res.status(400).send(new ApiError(400, error.details[0].message))
     }
 
-    const isUserExist = await User.findOne({ email });
+    const isUserExist = await User.findOne({
+        $or: [
+            { email },
+            { user_name }
+        ]
+    });
+    console.log("isUserExist", isUserExist);
+
 
     if (isUserExist) {
         return res.status(409).send(new ApiError(409, "This user already exists"))
     }
 
-    const user = await User.create({
+    let user = await User.create({
         ...req.body,
-        coordinators: 1,
-        activity: 1,
-        isAdmin: true
+        // coordinators: 1,
+        // activity: 1,
+        // isAdmin: true
     })
 
     const createdUser = await User.findById(user._id).select("-password -refreshToken")
@@ -51,8 +70,54 @@ const registerUser = asyncHandler(async (req, res) => {
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id)
 
-    return res.status(200).json(new ApiResponse(200, { accessToken }, "User is registered successfully"))
+    const code = generateVerificationCode();
+    const verificationCode = { "verificationCode": code }
+    user = await User.findByIdAndUpdate(user.id, verificationCode, { new: true })
+
+    // Send Email
+    // const link = `${backHost}/api/user/verify/${user._id}/${user.userToken}`
+    const subject = `Verify Your Yuu System Email Address`
+    const message = `<p>Thanks for signing up with The Yuu System! Use the verification code below to verify your email:</p>
+    
+        <h2 style="color:#2c3e50;">${code}</h2>
+        
+        <p>If you did not sign up for The Yuu System account,
+        you can safely ignore this email. Have fun, and don't hesitate to contact us with your feedback.</p>
+        
+        <p>Best regards,<br>The Yuu System</p>`
+
+    await sendEmail(user.email, subject, message)
+
+    return res.status(200).json(new ApiResponse(200, { accessToken }, "A verification code is sent to your email, please verify to activate your account"))
 })
+
+// Route 2: verify user using POST "/api/v1/auth/verify"
+const verifyEmail = async (req, res) => {
+    try {
+        // const { id, token } = req.params
+        console.log("Verifying email...");
+
+        const { email, code } = req.body
+        let user = await User.findOne({ email })
+        if (!user) { return res.status(400).json({ message: "Email is Invalid" }) }
+
+        let verifycode = await User.findOne({ email, verificationCode: code })
+        if (!verifycode) { return res.status(400).json({ message: "Email or verification Code is invalid!" }) }
+
+        const verified = { "isVerified": "true" }
+        user = await User.findByIdAndUpdate(verifycode._id, verified, { new: true })
+
+        const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id)
+
+        // res.redirect(`${frontHost}/`)
+
+        return res.status(200).json(new ApiResponse(200, { accessToken }, "Email is verified successfully!"))
+
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).json({ message: "Server error" });
+    }
+}
 
 const loginUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body
@@ -63,7 +128,12 @@ const loginUser = asyncHandler(async (req, res) => {
         return res.status(400).send(new ApiError(400, error.details[0].message))
     }
 
-    const user = await User.findOne({ email })
+    let user = await User.findOne({
+        $or: [
+            { email: email },
+            { user_name: email }
+        ]
+    })
 
     if (!user) {
         return res.status(404).send(new ApiError(404, "User not found"))
@@ -81,7 +151,27 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id)
 
-    return res.status(200).json(new ApiResponse(200, { accessToken }, "User logged in successfully"))
+    const code = generateVerificationCode();
+    const verificationCode = { "verificationCode": code }
+    user = await User.findByIdAndUpdate(user.id, verificationCode, { new: true })
+
+    // if (!user.isVerified) {
+    // Send Email
+    // const link = `${backHost}/api/user/verify/${user._id}/${user.userToken}`
+    const subject = `The Yuu System Signin Verification`
+    const message = `<p>We received a request to sign in to your The Yuu System account. Use the verification code below to complete your sign-in:</p>
+  
+        <h2 style="color:#2c3e50;">${code}</h2>
+    
+        <p>If you did not request this sign-in, you can safely ignore this email. Your account will remain secure.</p>
+        
+        <p>Best regards,<br>The Yuu System</p>`
+    await sendEmail(user.email, subject, message)
+
+    return res.status(200).json(new ApiResponse(200, { accessToken }, "A verification code is sent to your email, please verify to login to your account"))
+    // }
+
+    // return res.status(200).json(new ApiResponse(200, { accessToken }, "User logged in successfully"))
 })
 
 const getUser = asyncHandler(async (req, res) => {
@@ -91,7 +181,7 @@ const getUser = asyncHandler(async (req, res) => {
 const updatePassword = asyncHandler(async (req, res) => {
     const user_id = req.user._id
     const { password } = req.body
-    
+
     if (!password || password.length < 8) {
         return res.status(400).json({ success: false, message: "Password must be at least 8 characters long." });
     }
@@ -107,4 +197,4 @@ const updatePassword = asyncHandler(async (req, res) => {
     return res.status(200).send(new ApiResponse(200, req.user, "User password is updated successfully"))
 })
 
-module.exports = { registerUser, loginUser, getUser, updatePassword }
+module.exports = { registerUser, loginUser, getUser, updatePassword, verifyEmail }

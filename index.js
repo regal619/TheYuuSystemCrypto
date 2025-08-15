@@ -1,7 +1,7 @@
 const { app } = require("./app");
 const connectDb = require("./config/dbConnection");
 
-const PORT = process.env.PORT || 2802
+const PORT = process.env.PORT || 2800
 
 connectDb()
     .then(() => {
