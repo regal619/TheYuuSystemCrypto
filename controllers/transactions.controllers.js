@@ -67,8 +67,8 @@ const createTransaction = asyncHandler(async (req, res) => {
         order_id: orderId || `don-${Date.now()}`,
         order_description: note || "Donation",
         ipn_callback_url: `${process.env.BASE_URL}/transactions/donate/ipn`,
-        success_url: `${process.env.BASE_URL}/transactions/success`,
-        cancel_url: `${process.env.BASE_URL}/transactions/cancel`
+        success_url: `${process.env.FRONTEND_URL}/#/payement/success`,
+        cancel_url: `${process.env.FRONTEND_URL}/#/payement/cancelled`
     };
     console.log("transaction payload: ", payload);
 
