@@ -7,8 +7,8 @@ const sendEmail = require("../utils/Email.js");
 
 // const backHost = process.env.Backend_HOST
 // const frontHost = process.env.Frontend_HOST
-const backHost = "http://localhost:2800"
-const frontHost = "http://localhost:5173"
+const backHost = process.env.BASE_URL
+const frontHost = process.env.FRONTEND_URL
 
 function generateVerificationCode() {
     return Math.floor(100000 + Math.random() * 900000);
@@ -197,4 +197,42 @@ const updatePassword = asyncHandler(async (req, res) => {
     return res.status(200).send(new ApiResponse(200, req.user, "User password is updated successfully"))
 })
 
-module.exports = { registerUser, loginUser, getUser, updatePassword, verifyEmail }
+// Route 5: Forgot password using POST "/api/user/forgot-password"
+const forgotPassword = asyncHandler(async (req, res) => {
+
+    const { email } = req.body
+    let user = await User.findOne({ email })
+    if (!user) { return res.status(404).send(new ApiError(404, "User not found")) }
+
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id)
+
+    console.log("Forgot password for user:", user._id, accessToken, frontHost);
+
+    // send email
+    // const link = `${backHost}/api/user/reset-link/${user._id}/${resetString}`
+    const link = `${frontHost}/reset-link/${accessToken}`
+    const subject = 'Password Reset Link'
+    const message = `<p>We received a request to reset your password. Click on the link below to proceed with resetting your password:</p>
+        <a href="${link}">Click here</a>
+        <p>This link will expire in 24 hours. If you did not request a password reset, you can safely ignore this email. If you have any questions or need further assistance, feel free to contact us.</p>
+        <p>Best regards,<br>The Yuu Team</p>`
+
+    await sendEmail(user.email, subject, message)
+
+    // res.json({ user, message: "Password reset link has been sent to your email" })
+    return res.status(200).json(new ApiResponse(200, { status: "reset" }, "Password reset link has been sent to your email"))
+})
+
+// Route 7: Update Reset password in db using POST "/api/user/reset-password"
+const resetPassword = asyncHandler(async (req, res) => {
+
+    const { password } = req.body
+    userId = req.user._id
+
+    const newPass = { password: password }
+    await User.findByIdAndUpdate(userId, newPass, { new: true })
+
+    return res.status(200).send(new ApiResponse(200, { status: "reset" }, "User password is updated successfully"))
+})
+
+module.exports = { registerUser, loginUser, getUser, updatePassword, verifyEmail, forgotPassword, resetPassword }
