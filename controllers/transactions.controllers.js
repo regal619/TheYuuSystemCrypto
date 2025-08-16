@@ -7,7 +7,34 @@ const { default: axios } = require("axios");
 const Transactions = require("../models/transactions.models.js");
 
 const getAllTransactions = asyncHandler(async (req, res) => {
-    const transactions = await Transactions.find({}).sort({ createdAt: -1 })
+    // const transactions = await Transactions.find({}).sort({ createdAt: -1 })
+    const transactions = await Transactions.aggregate([
+        { $match: {} },
+        { $group: { _id: null, total: { $sum: "$price_amount" } } },
+        {
+            $lookup: {
+                from: "users",
+                localField: "user_id",
+                foreignField: "_id",
+                as: "user"
+            }
+        },
+        { $unwind: "$user" },
+        {
+            $project: {
+                _id: 0,
+                user_id: "$user._id",
+                full_name: "$user.full_name",
+                email: "$user.email",
+                price_amount: 1,
+                price_currency: 1,
+                order_id: 1,
+                order_description: 1,
+                createdAt: 1
+            }
+        },
+        // { $sort: { createdAt: -1 } }
+    ]);
     return res.status(200).json(new ApiResponse(200, { transactions }, "User is registered successfully"))
 })
 
