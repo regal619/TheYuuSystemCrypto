@@ -176,7 +176,10 @@ const loginUser = asyncHandler(async (req, res) => {
 })
 
 const getUser = asyncHandler(async (req, res) => {
-    return res.status(200).send(new ApiResponse(200, req.user, "User fetched successfully"))
+    const total_investments = await Transactions.countDocuments({})
+    const active_members = await User.countDocuments({ status: 1 })
+
+    return res.status(200).send(new ApiResponse(200, { user: req.user, total_investments, active_members }, "User fetched successfully"))
 })
 
 const updatePassword = asyncHandler(async (req, res) => {
