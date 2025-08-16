@@ -198,6 +198,25 @@ const updatePassword = asyncHandler(async (req, res) => {
     return res.status(200).send(new ApiResponse(200, req.user, "User password is updated successfully"))
 })
 
+const updateProfile = asyncHandler(async (req, res) => {
+    const user_id = req.user._id
+    const { full_name } = req.body
+
+    if (!full_name) {
+        return res.status(400).json({ success: false, message: "Name field is required" });
+    }
+
+    const user = await User.findById(user_id);
+    if (!user) {
+        return res.status(404).json({ success: false, message: "User not found." });
+    }
+
+    user.full_name = full_name;
+    await user.save();
+
+    return res.status(200).send(new ApiResponse(200, req.user, "Profile is updated successfully!"))
+})
+
 // Route: Forgot password using POST "/auth/forgot-password"
 const forgotPassword = asyncHandler(async (req, res) => {
 
@@ -243,4 +262,4 @@ const resetPassword = asyncHandler(async (req, res) => {
     return res.status(200).send(new ApiResponse(200, { status: "reset" }, "User password is updated successfully"))
 })
 
-module.exports = { registerUser, loginUser, getUser, updatePassword, verifyEmail, forgotPassword, resetPassword }
+module.exports = { registerUser, loginUser, getUser, updatePassword, updateProfile, verifyEmail, forgotPassword, resetPassword }
