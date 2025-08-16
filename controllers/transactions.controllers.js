@@ -8,6 +8,31 @@ const Transactions = require("../models/transactions.models.js");
 
 const getAllTransactions = asyncHandler(async (req, res) => {
     // const transactions = await Transactions.find({}).sort({ createdAt: -1 })
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const today_investments = await Transactions.aggregate([
+        {
+            $match: {
+                createdAt: {
+                    $gte: today,
+                    $lt: tomorrow
+                }
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                total: { $sum: "$price_amount" }
+            }
+        },
+    ]);
+    const total_investments = await Transactions.aggregate([
+        { $match: {} },
+        { $group: { _id: null, total: { $sum: "$price_amount" } } }
+    ]);
     const transactions = await Transactions.aggregate([
         { $match: {} },
         {
@@ -36,7 +61,7 @@ const getAllTransactions = asyncHandler(async (req, res) => {
         { $sort: { createdAt: -1 } }
 
     ]);
-    return res.status(200).json(new ApiResponse(200, { transactions }, "User is registered successfully"))
+    return res.status(200).json(new ApiResponse(200, { transactions, today_investments, total_investments }, "Transactions fetched successfully"))
 })
 
 const getUserTransactions = asyncHandler(async (req, res) => {
