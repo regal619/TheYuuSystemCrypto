@@ -17,7 +17,7 @@ const getUserTransactions = asyncHandler(async (req, res) => {
         { $group: { _id: null, total: { $sum: "$price_amount" } } }
     ]);
     const transactions = await Transactions.find({ user_id: req.user._id }).sort({ createdAt: -1 })
-    return res.status(200).json(new ApiResponse(200, { ...transactions, total_amount }, "User is registered successfully"))
+    return res.status(200).json(new ApiResponse(200, { transactions, total_amount }, "User is registered successfully"))
 })
 
 const getTransactions = asyncHandler(async (req, res) => {

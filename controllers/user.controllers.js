@@ -4,7 +4,8 @@ const { ApiError } = require("../utils/ApiError.js");
 const { ApiResponse } = require("../utils/ApiResponse.js");
 const { login, register } = require("../validations/user.validations.js");
 const sendEmail = require("../utils/Email.js");
-const jwt = require("jsonwebtoken")
+const jwt = require("jsonwebtoken");
+const Transactions = require("../models/transactions.models.js");
 
 // const backHost = process.env.Backend_HOST
 // const frontHost = process.env.Frontend_HOST
