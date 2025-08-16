@@ -10,6 +10,6 @@ router.route("/verifyEmail").post(verifyEmail)
 router.route("/getUser").get(verifyJwt, getUser)
 router.route("/updatePassword").post(verifyJwt, updatePassword)
 router.route("/forgot-password").post(forgotPassword)
-router.route("/reset-password").post(verifyJwt, resetPassword)
+router.route("/reset-password").post(resetPassword)
 
 module.exports = router

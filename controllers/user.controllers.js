@@ -4,6 +4,7 @@ const { ApiError } = require("../utils/ApiError.js");
 const { ApiResponse } = require("../utils/ApiResponse.js");
 const { login, register } = require("../validations/user.validations.js");
 const sendEmail = require("../utils/Email.js");
+const jwt = require("jsonwebtoken")
 
 // const backHost = process.env.Backend_HOST
 // const frontHost = process.env.Frontend_HOST
@@ -197,7 +198,7 @@ const updatePassword = asyncHandler(async (req, res) => {
     return res.status(200).send(new ApiResponse(200, req.user, "User password is updated successfully"))
 })
 
-// Route 5: Forgot password using POST "/api/user/forgot-password"
+// Route: Forgot password using POST "/auth/forgot-password"
 const forgotPassword = asyncHandler(async (req, res) => {
 
     const { email } = req.body
@@ -206,11 +207,9 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id)
 
-    console.log("Forgot password for user:", user._id, accessToken, frontHost);
-
     // send email
     // const link = `${backHost}/api/user/reset-link/${user._id}/${resetString}`
-    const link = `${frontHost}/reset-link/${accessToken}`
+    const link = `${frontHost}/#/reset-link/${accessToken}`
     const subject = 'Password Reset Link'
     const message = `<p>We received a request to reset your password. Click on the link below to proceed with resetting your password:</p>
         <a href="${link}">Click here</a>
@@ -223,14 +222,23 @@ const forgotPassword = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, { status: "reset" }, "Password reset link has been sent to your email"))
 })
 
-// Route 7: Update Reset password in db using POST "/api/user/reset-password"
+// Route: Update Reset password in db using POST "/auth/reset-password"
 const resetPassword = asyncHandler(async (req, res) => {
 
-    const { password } = req.body
-    userId = req.user._id
+    const { password, token } = req.body
+    if (!token) {
+        return res.status(400).send(new ApiError(400, "Unauthorized Access"))
+    }
+
+    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
+
+    const user = await User.findById(decodedToken._id).select("-password -refreshToken -verificationCode -isVerified")
+    if (!user) {
+        return res.status(400).send(new ApiError(400, "Invalid Access Token"))
+    }
 
     const newPass = { password: password }
-    await User.findByIdAndUpdate(userId, newPass, { new: true })
+    await User.findByIdAndUpdate(user._id, newPass, { new: true })
 
     return res.status(200).send(new ApiResponse(200, { status: "reset" }, "User password is updated successfully"))
 })
