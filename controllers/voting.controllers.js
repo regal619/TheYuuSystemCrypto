@@ -40,7 +40,7 @@ const getStats = asyncHandler(async (req, res) => {
     ]);
     const total_investments = total_investments_result.length > 0 ? total_investments_result[0].total : 0;
 
-    if (totalMembers >= 2 && total_investments >= 100000) {
+    if (totalMembers >= 100 && total_investments >= 100000) {
         const topTransactions = await Transactions.aggregate([
             {
                 $group: {
