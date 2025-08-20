@@ -1,8 +1,10 @@
-const Activity = require("../models/activity.models")
+const Transactions = require("../models/transactions.models")
+const User = require("../models/user.models")
 const { ApiError } = require("../utils/ApiError")
 const { ApiResponse } = require("../utils/ApiResponse")
 const { asyncHandler } = require("../utils/asyncHandler")
-const csv = require('csv-parser')
+// const Activity = require("../models/activity.models")
+// const csv = require('csv-parser')
 const fs = require('fs')
 const path = require('path')
 
@@ -133,22 +135,16 @@ const getAllActivities = asyncHandler(async (req, res) => {
     return res.json(new ApiResponse(200, activities, "Activities fetched successfully"))
 })
 
-const getActivities = asyncHandler(async (req, res) => {
-    const user_id = req.user.isAdmin ? req.user._id : req.user.user_id;
-    const activity_ids = req.user.activity_ids;
-    let activities;
+const getStats = asyncHandler(async (req, res) => {
 
-    if (activity_ids && Array.isArray(activity_ids) && activity_ids.length > 0) {
-        activities = await Activity.find({ _id: { $in: activity_ids }, user_id, status: 1 });
-    } else if (req.user.isAdmin) {
-        activities = await Activity.find({ user_id, status: 1 });
-    } else {
-        activities = []
-    }
+    const totalMembers = await User.countDocuments({ status: 1 })
+    const total_investments_result = await Transactions.aggregate([
+        { $match: {} },
+        { $group: { _id: null, total: { $sum: "$price_amount" } } }
+    ]);
+    const total_investments = total_investments_result.length > 0 ? total_investments_result[0].total : 0;
 
-    // const activities = await Activity.find({ user_id, status: 1 })
-
-    return res.json(new ApiResponse(200, activities, "Activities fetched successfully"))
+    return res.json(new ApiResponse(200, { totalMembers, total_investments }, "Stats fetched successfully"))
 })
 
 
@@ -168,4 +164,4 @@ const deleteActivity = asyncHandler(async (req, res) => {
     return res.json(new ApiResponse(200, activity, "Activity deleted successfully!"))
 })
 
-module.exports = { addActivity, updateActivity, getActivities, deleteActivity, addCsvActivity, addMultipleActivities, getAllActivities }
+module.exports = { addActivity, updateActivity, getStats, deleteActivity, addCsvActivity, addMultipleActivities, getAllActivities }
