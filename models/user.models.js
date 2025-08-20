@@ -38,6 +38,10 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             default: "false"
         },
+        isVoted: {
+            type: Boolean,
+            default: "false"
+        },
         status: {
             type: Number,
             enum: [0, 1],

@@ -73,7 +73,7 @@ const getUserTransactions = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, { transactions, total_amount }, "User is registered successfully"))
 })
 
-const getTransactions = asyncHandler(async (req, res) => {
+const getTransactions = asyncHandler(async (req, res) => {  // by rankings
     // Aggregate transactions by user_id and sort by total_amount descending
     const transactions = await Transactions.aggregate([
         {

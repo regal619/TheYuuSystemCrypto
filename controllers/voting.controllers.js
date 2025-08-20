@@ -1,138 +1,34 @@
+const Top100Members = require("../models/top100Members.models")
 const Transactions = require("../models/transactions.models")
 const User = require("../models/user.models")
 const { ApiError } = require("../utils/ApiError")
 const { ApiResponse } = require("../utils/ApiResponse")
 const { asyncHandler } = require("../utils/asyncHandler")
-// const Activity = require("../models/activity.models")
-// const csv = require('csv-parser')
-const fs = require('fs')
-const path = require('path')
 
+const getVotingData = asyncHandler(async (req, res) => {
 
-const addActivity = asyncHandler(async (req, res) => {
+    const votingData = await Top100Members.find({})
 
-    // const { error } = addCustSupValidation.body.validate(req.body)
-    // if (error) {
-    //     return res.status(400).send(new ApiError(400, error.details[0].message))
-    // }
-
-    const user_id = req.user.isAdmin ? req.user._id : req.user.user_id
-    const sub_admin_id = req.user.isAdmin ? null : req.user._id
-
-    let activity = await Activity.create({
-        ...req.body,
-        user_id,
-        sub_admin_id
-    })
-
-    const createdActivity = await Activity.findById(activity._id)
-
-    if (!createdActivity) {
-        return res.status(500).send(new ApiError(500, "Something went wrong will creating activity"))
-    }
-
-    return res.json(new ApiResponse(200, createdActivity, "Activity added successfully"))
+    return res.json(new ApiResponse(200, votingData, "Voting Data fetched successfully"))
 })
 
-const addMultipleActivities = asyncHandler(async (req, res) => {
-    // const { error } = addCustSupValidation.body.validate(req.body)
-    // if (error) {
-    //     return res.status(400).send(new ApiError(400, error.details[0].message))
-    // }
+const addVote = asyncHandler(async (req, res) => {
+    const { user_id } = req.body
 
-    if (!Array.isArray(req.body) || req.body.length === 0) {
-        return res.status(400).send(new ApiError(400, "Request body must be a non-empty array of activities"))
+    const userDoc = await Top100Members.findOne({ user_id });
+    if (!userDoc) {
+        return res.status(404).send(new ApiError(404, "User not found"));
     }
+    const updatedVotes = (userDoc.votes || 0) + 1;
+    await Top100Members.updateOne(
+        { user_id: user_id },
+        { $set: { votes: updatedVotes } }
+    );
 
-    const user_id = req.user.isAdmin ? req.user._id : req.user.user_id
-    const sub_admin_id = req.user.isAdmin ? null : req.user._id
+    // Update the user's isVoted status
+    await User.findByIdAndUpdate(req.user._id, { isVoted: true }, { new: true });
 
-    const activitiesToAdd = req.body.map(activity => ({
-        ...activity,
-        user_id,
-        sub_admin_id
-    }))
-
-    try {
-        const createdActivities = await Activity.insertMany(activitiesToAdd)
-        return res.json(new ApiResponse(200, createdActivities, "Activities added successfully"))
-    } catch (err) {
-        return res.status(500).send(new ApiError(500, "Something went wrong while adding activities"))
-    }
-})
-
-
-const addCsvActivity = asyncHandler(async (req, res) => {
-    if (!req.file) {
-        return res.status(400).send(new ApiError(400, "CSV file is required"))
-    }
-
-    const user_id = req.user.isAdmin ? req.user._id : req.user.user_id
-    const sub_admin_id = req.user.isAdmin ? null : req.user._id
-
-    const filePath = path.join(__dirname, '../tmp', req.file.filename)
-    const activities = []
-
-    fs.createReadStream(filePath)
-        .pipe(csv())
-        .on('data', (row) => {
-            activities.push({
-                ...row,
-                user_id,
-                sub_admin_id
-            })
-        })
-        .on('end', async () => {
-            try {
-                const createdActivities = await Activity.insertMany(activities)
-                fs.unlinkSync(filePath) // Delete the CSV after processing
-                return res.json(new ApiResponse(200, createdActivities, "Activities added successfully"))
-            } catch (err) {
-                console.error(err)
-                fs.unlinkSync(filePath) // Delete the CSV after processing
-                return res.status(500).send(new ApiError(500, "Something went wrong while adding activities"))
-            }
-        })
-        .on('error', (err) => {
-            console.error(err)
-            return res.status(500).send(new ApiError(500, "Failed to read CSV file"))
-        })
-})
-
-const updateActivity = asyncHandler(async (req, res) => {
-    const { _id, name, submission_date } = req.body
-
-    // const { error } = updateCustSupValidation.body.validate(req.body)
-    // if (error) {
-    //     return res.status(400).send(new ApiError(400, error.details[0].message))
-    // }
-
-    let activity = await Activity.findById(_id)
-    if (!activity) {
-        return res.status(404).send(new ApiError(404, "Activity doesn't found"))
-    }
-
-    const user_id = req.user.isAdmin ? req.user._id : req.user.user_id
-    const sub_admin_id = req.user.isAdmin ? null : req.user._id
-
-    activity = await Activity.findByIdAndUpdate(
-        activity._id,
-        {
-            ...req.body,
-            user_id,
-            sub_admin_id
-        },
-        { new: true }
-    )
-
-    return res.json(new ApiResponse(200, activity, "Activity updated successfully"))
-})
-
-const getAllActivities = asyncHandler(async (req, res) => {
-
-    const activities = await Activity.find({ status: 1 })
-
-    return res.json(new ApiResponse(200, activities, "Activities fetched successfully"))
+    return res.json(new ApiResponse(200, {}, "Vote is added successfully!"))
 })
 
 const getStats = asyncHandler(async (req, res) => {
@@ -144,24 +40,54 @@ const getStats = asyncHandler(async (req, res) => {
     ]);
     const total_investments = total_investments_result.length > 0 ? total_investments_result[0].total : 0;
 
+    if (totalMembers >= 2 && total_investments >= 100000) {
+        const topTransactions = await Transactions.aggregate([
+            {
+                $group: {
+                    _id: "$user_id",
+                    total_amount: { $sum: "$price_amount" },
+                    total_transactions: { $sum: 1 },
+                    transactions: { $push: "$$ROOT" }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "user"
+                }
+            },
+            {
+                $unwind: "$user"
+            },
+            {
+                $project: {
+                    _id: 0,
+                    user_id: "$_id",
+                    full_name: "$user.full_name",
+                    total_amount: 1,
+                    total_transactions: 1,
+                    // transactions: 1
+                }
+            },
+            {
+                $sort: { total_amount: -1 }
+            },
+            { $limit: 100 }
+        ]);
+
+        await Top100Members.insertMany(topTransactions.map(member => ({
+            // ...member,
+            full_name: member.full_name,
+            investment: member.total_amount,
+            user_id: member.user_id,
+        })));
+        // return res.status(400).send(new ApiError(400, "Total members should be at least 100 to add top members"))
+        return res.json(new ApiResponse(200, { totalMembers, total_investments, top100Investers: topTransactions }, "Stats fetched successfully"))
+    }
+
     return res.json(new ApiResponse(200, { totalMembers, total_investments }, "Stats fetched successfully"))
 })
 
-
-
-const deleteActivity = asyncHandler(async (req, res) => {
-    const activityId = req.params.id
-    let activity = await Activity.findById(activityId)
-
-    if (!activity) {
-        return res.status(404).send(new ApiResponse(404, "Activity not found"))
-    }
-
-    const status = activity.status === 0 ? 1 : 0;
-
-    activity = await Activity.findByIdAndUpdate(activity._id, { status }, { new: true })
-
-    return res.json(new ApiResponse(200, activity, "Activity deleted successfully!"))
-})
-
-module.exports = { addActivity, updateActivity, getStats, deleteActivity, addCsvActivity, addMultipleActivities, getAllActivities }
+module.exports = { addVote, getStats, getVotingData }
