@@ -1,3 +1,4 @@
+const Comission = require("../models/comission.models")
 const Top100Members = require("../models/top100Members.models")
 const Transactions = require("../models/transactions.models")
 const User = require("../models/user.models")
@@ -10,6 +11,39 @@ const getVotingData = asyncHandler(async (req, res) => {
     const votingData = await Top100Members.find({})
 
     return res.json(new ApiResponse(200, votingData, "Voting Data fetched successfully"))
+})
+
+const getComission = asyncHandler(async (req, res) => {
+
+    const comission = await Comission.aggregate([
+        { $match: {} },
+        {
+            $lookup: {
+                from: "top100members",
+                localField: "user_id",
+                foreignField: "user_id",
+                as: "member"
+            },
+        },
+        {
+            $unwind: "$member"
+        },
+        {
+            $project: {
+                _id: 0,
+                user_id: "$user_id",
+                full_name: "$member.full_name",
+                investment: "$member.investment",
+                votes: "$member.votes",
+                vote_status: "$member.vote_status",
+                casting_last_day: 1,
+                member_status: 1
+            }
+        },
+        // { $sort: { investment: -1 } }
+    ]);
+
+    return res.json(new ApiResponse(200, comission, "Comission Data fetched successfully"))
 })
 
 const addVote = asyncHandler(async (req, res) => {
@@ -83,6 +117,8 @@ const getStats = asyncHandler(async (req, res) => {
             investment: member.total_amount,
             user_id: member.user_id,
         })));
+
+        await Comm
         // return res.status(400).send(new ApiError(400, "Total members should be at least 100 to add top members"))
         return res.json(new ApiResponse(200, { totalMembers, total_investments, top100Investers: topTransactions }, "Stats fetched successfully"))
     }
@@ -90,4 +126,4 @@ const getStats = asyncHandler(async (req, res) => {
     return res.json(new ApiResponse(200, { totalMembers, total_investments }, "Stats fetched successfully"))
 })
 
-module.exports = { addVote, getStats, getVotingData }
+module.exports = { addVote, getStats, getVotingData, getComission }
