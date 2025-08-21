@@ -9,6 +9,6 @@ router.route("/getStats").get(getStats)
 router.route("/addVote").post(addVote)
 router.route("/getVotingData").get(getVotingData)
 router.route("/getComission").get(getComission)
-router.route("/updateReload").get(updateReload)
+// router.route("/updateReload").get(updateReload)
 
 module.exports = router

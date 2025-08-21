@@ -127,17 +127,17 @@ const getStats = asyncHandler(async (req, res) => {
             {
                 $set: {
                     casting_last_day: null,
-                    voting_status: "reload",
+                    voting_status: "ended",
                     comission_members: top4Members.map(member => (member.user_id)),
                     // president_members: null
                 }
             },
             { upsert: true }
         );
-        return res.json(new ApiResponse(200, { totalMembers, total_investments, voting_status: comission.voting_status, reload }, "Voting is ended, Comission members updated successfully"));
+        return res.json(new ApiResponse(200, { totalMembers, total_investments, voting_status: "reload" }, "Voting is ended, Comission members updated successfully"));
     }
 
-    if (votingStatus && votingStatus.casting_last_day && votingStatus.casting_last_day < new Date() && votingStatus.voting_status === "ended") {
+    if (votingStatus && votingStatus.casting_last_day && votingStatus.voting_status === "ended") {
         return res.json(new ApiResponse(200, { totalMembers, total_investments, voting_status: votingStatus.voting_status }, "Voting is ended"));
     }
 
@@ -189,7 +189,7 @@ const getStats = asyncHandler(async (req, res) => {
             {},
             {
                 $set: {
-                    casting_last_day: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                    casting_last_day: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
                     voting_status: "started",
                     // comission_members: [],
                     // president_members: topTransactions[0].user_id // Assuming the first in the list is the president
