@@ -121,7 +121,7 @@ const getStats = asyncHandler(async (req, res) => {
     }
 
     if (votingStatus && votingStatus.casting_last_day && votingStatus.casting_last_day < new Date() && votingStatus.voting_status === "started") {
-        const top4Members = await Top100Members.find({}).sort({ votes: -1 }).limit(4);
+        const top4Members = await Top100Members.find({}).sort({ votes: -1, investment: -1 }).limit(4);
         const comission = await Comission.updateOne(
             {},
             {
