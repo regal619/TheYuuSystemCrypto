@@ -141,7 +141,7 @@ const getStats = asyncHandler(async (req, res) => {
         return res.json(new ApiResponse(200, { totalMembers, total_investments, voting_status: votingStatus.voting_status }, "Voting is ended"));
     }
 
-    if (!votingStatus && totalMembers >= 2 && total_investments >= 100000) {
+    if (!votingStatus && totalMembers >= 100 && total_investments >= 100000) {
         const topTransactions = await Transactions.aggregate([
             {
                 $group: {
