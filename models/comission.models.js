@@ -19,6 +19,10 @@ const comissionSchema = new mongoose.Schema(
             type: String,
             default: null
         },
+        voting_status: {
+            type: String,
+            default: "started"
+        },
         // user_id: {
         //     type: mongoose.Schema.Types.ObjectId,
         //     ref: "User",

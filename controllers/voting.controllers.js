@@ -68,46 +68,7 @@ const getComission = asyncHandler(async (req, res) => {
                 "president_member.verificationCode": 0
             }
         }
-        // {
-        //     $unwind: "$members"
-        // },
-        // {
-        //     $project: {
-        //         _id: 0,
-        //         casting_last_day: 1,
-        //         comission_members: "$members",
-        //         president_members: 1
-        //     }
-        // },
-        // { $sort: { "comission_members.investment": -1 } }
-        // { $match: {} },
-        // {
-        //     $lookup: {
-        //         from: "top100members",
-        //         localField: "user_id",
-        //         foreignField: "user_id",
-        //         as: "member"
-        //     },
-        // },
-        // {
-        //     $unwind: "$member"
-        // },
-        // {
-        //     $project: {
-        //         _id: 0,
-        //         user_id: "$user_id",
-        //         full_name: "$member_info.full_name",
-        //         investment: "$member_info.investment",
-        //         votes: "$member_info.votes",
-        //         vote_status: "$member_info.vote_status",
-        //         casting_last_day: 1,
-        //         member_status: 1
-        //     }
-        // },
-        // { $sort: { investment: -1 } }
     ]);
-
-    // console.log("Comission Data:", comission[0].comission_members);
 
 
     return res.json(new ApiResponse(200, comission, "Comission Data fetched successfully"))
@@ -132,6 +93,19 @@ const addVote = asyncHandler(async (req, res) => {
     return res.json(new ApiResponse(200, {}, "Vote is added successfully!"))
 })
 
+const updateReload = asyncHandler(async (req, res) => {
+    const comission = await Comission.updateOne(
+        {},
+        {
+            $set: {
+                voting_status: "ending",
+            }
+        },
+        { upsert: true }
+    );
+    return res.json(new ApiResponse(200, comission, "Reload status updated successfully"))
+})
+
 const getStats = asyncHandler(async (req, res) => {
 
     const totalMembers = await User.countDocuments({ status: 1 })
@@ -140,8 +114,34 @@ const getStats = asyncHandler(async (req, res) => {
         { $group: { _id: null, total: { $sum: "$price_amount" } } }
     ]);
     const total_investments = total_investments_result.length > 0 ? total_investments_result[0].total : 0;
+    const votingStatus = await Comission.findOne({});
 
-    if (totalMembers >= 100 && total_investments >= 100000) {
+    if (votingStatus && votingStatus.casting_last_day && votingStatus.casting_last_day > new Date()) {
+        return res.json(new ApiResponse(200, { totalMembers, total_investments, voting_status: votingStatus.voting_status }, "Voting is in progress"));
+    }
+
+    if (votingStatus && votingStatus.casting_last_day && votingStatus.casting_last_day < new Date() && votingStatus.voting_status === "started") {
+        const top4Members = await Top100Members.find({}).sort({ votes: -1 }).limit(4);
+        const comission = await Comission.updateOne(
+            {},
+            {
+                $set: {
+                    casting_last_day: null,
+                    voting_status: "reload",
+                    comission_members: top4Members.map(member => (member.user_id)),
+                    // president_members: null
+                }
+            },
+            { upsert: true }
+        );
+        return res.json(new ApiResponse(200, { totalMembers, total_investments, voting_status: comission.voting_status, reload }, "Voting is ended, Comission members updated successfully"));
+    }
+
+    if (votingStatus && votingStatus.casting_last_day && votingStatus.casting_last_day < new Date() && votingStatus.voting_status === "ended") {
+        return res.json(new ApiResponse(200, { totalMembers, total_investments, voting_status: votingStatus.voting_status }, "Voting is ended"));
+    }
+
+    if (!votingStatus && totalMembers >= 100 && total_investments >= 100000) {
         const topTransactions = await Transactions.aggregate([
             {
                 $group: {
@@ -185,7 +185,18 @@ const getStats = asyncHandler(async (req, res) => {
             user_id: member.user_id,
         })));
 
-        // await Comission.
+        await Comission.updateOne(
+            {},
+            {
+                $set: {
+                    casting_last_day: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                    voting_status: "started",
+                    // comission_members: [],
+                    // president_members: topTransactions[0].user_id // Assuming the first in the list is the president
+                }
+            },
+            { upsert: true }
+        );
         // return res.status(400).send(new ApiError(400, "Total members should be at least 100 to add top members"))
         return res.json(new ApiResponse(200, { totalMembers, total_investments, top100Investers: topTransactions }, "Stats fetched successfully"))
     }
@@ -193,4 +204,4 @@ const getStats = asyncHandler(async (req, res) => {
     return res.json(new ApiResponse(200, { totalMembers, total_investments }, "Stats fetched successfully"))
 })
 
-module.exports = { addVote, getStats, getVotingData, getComission }
+module.exports = { addVote, getStats, getVotingData, getComission, updateReload }
