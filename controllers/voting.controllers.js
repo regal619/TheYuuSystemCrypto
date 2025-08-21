@@ -137,11 +137,11 @@ const getStats = asyncHandler(async (req, res) => {
         return res.json(new ApiResponse(200, { totalMembers, total_investments, voting_status: "reload" }, "Voting is ended, Comission members updated successfully"));
     }
 
-    if (votingStatus && votingStatus.casting_last_day && votingStatus.voting_status === "ended") {
+    if (votingStatus && votingStatus.voting_status === "ended") {
         return res.json(new ApiResponse(200, { totalMembers, total_investments, voting_status: votingStatus.voting_status }, "Voting is ended"));
     }
 
-    if (!votingStatus && totalMembers >= 100 && total_investments >= 100000) {
+    if (!votingStatus && totalMembers >= 2 && total_investments >= 100000) {
         const topTransactions = await Transactions.aggregate([
             {
                 $group: {
@@ -198,7 +198,7 @@ const getStats = asyncHandler(async (req, res) => {
             { upsert: true }
         );
         // return res.status(400).send(new ApiError(400, "Total members should be at least 100 to add top members"))
-        return res.json(new ApiResponse(200, { totalMembers, total_investments, top100Investers: topTransactions }, "Stats fetched successfully"))
+        return res.json(new ApiResponse(200, { totalMembers, total_investments, top100Investers: topTransactions }, "Stats fetched successfully & voting is started"));
     }
 
     return res.json(new ApiResponse(200, { totalMembers, total_investments }, "Stats fetched successfully"))
