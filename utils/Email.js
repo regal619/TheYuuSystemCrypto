@@ -3,10 +3,11 @@ const nodemailer = require("nodemailer")
 const sendEmail = async (email, subject, message) => {
     try {
         const transporter = nodemailer.createTransport({
-            host: "smtp.forwardemail.net",
+            host: "smtp.secureserver.net",
+            // host: "smtp.forwardemail.net",
             port: 465,
             secure: true,
-            service: "gmail",
+            // service: "gmail",
             auth: {
                 user: process.env.SENDING_MAIL,
                 pass: process.env.MAIL_PASS
