@@ -7,7 +7,7 @@ const sendEmail = async (email, subject, message) => {
             host: "smtp.forwardemail.net",
             port: 465,
             secure: true,
-            // service: "gmail",
+            service: "gmail",
             auth: {
                 user: process.env.SENDING_MAIL,
                 pass: process.env.MAIL_PASS
