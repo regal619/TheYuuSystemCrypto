@@ -16,6 +16,7 @@ const getAllTransactions = asyncHandler(async (req, res) => {
     const today_investments = await Transactions.aggregate([
         {
             $match: {
+                payment_status: "finished",
                 createdAt: {
                     $gte: today,
                     $lt: tomorrow
@@ -30,11 +31,11 @@ const getAllTransactions = asyncHandler(async (req, res) => {
         },
     ]);
     const total_investments = await Transactions.aggregate([
-        { $match: {} },
+        { $match: { payment_status: "finished" } },
         { $group: { _id: null, total: { $sum: "$price_amount" } } }
     ]);
     const transactions = await Transactions.aggregate([
-        { $match: {} },
+        { $match: { payment_status: "finished" } },
         {
             $lookup: {
                 from: "users",
@@ -66,7 +67,7 @@ const getAllTransactions = asyncHandler(async (req, res) => {
 
 const getUserTransactions = asyncHandler(async (req, res) => {
     const total_amount = await Transactions.aggregate([
-        { $match: { user_id: req.user._id } },
+        { $match: { user_id: req.user._id, payment_status: "finished" } },
         { $group: { _id: null, total: { $sum: "$price_amount" } } }
     ]);
     const transactions = await Transactions.find({ user_id: req.user._id }).sort({ createdAt: -1 })
@@ -76,6 +77,9 @@ const getUserTransactions = asyncHandler(async (req, res) => {
 const getTransactions = asyncHandler(async (req, res) => {  // by rankings
     // Aggregate transactions by user_id and sort by total_amount descending
     const transactions = await Transactions.aggregate([
+        {
+            $match: { payment_status: "finished" }
+        },
         {
             $group: {
                 _id: "$user_id",
