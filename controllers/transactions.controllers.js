@@ -70,7 +70,7 @@ const getUserTransactions = asyncHandler(async (req, res) => {
         { $match: { user_id: req.user._id, payment_status: "finished" } },
         { $group: { _id: null, total: { $sum: "$price_amount" } } }
     ]);
-    const transactions = await Transactions.find({ user_id: req.user._id }).sort({ createdAt: -1 })
+    const transactions = await Transactions.find({ user_id: req.user._id, payment_status: "finished" }).sort({ createdAt: -1 })
     return res.status(200).json(new ApiResponse(200, { transactions, total_amount }, "User is registered successfully"))
 })
 

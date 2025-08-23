@@ -110,7 +110,7 @@ const getStats = asyncHandler(async (req, res) => {
 
     const totalMembers = await User.countDocuments({ status: 1 })
     const total_investments_result = await Transactions.aggregate([
-        { $match: {} },
+        { $match: { payment_status: "finished" } },
         { $group: { _id: null, total: { $sum: "$price_amount" } } }
     ]);
     const total_investments = total_investments_result.length > 0 ? total_investments_result[0].total : 0;
