@@ -185,9 +185,17 @@ const donateIpn = asyncHandler(async (req, res) => {
     // statuses: waiting, confirming, confirmed/paid, finished, expired...
     // TODO: apni DB me order ko update karo based on status
     console.log("IPN verified:", req.body);
-    await Transactions.create({
-        ...req.body,
-    });
+    const transaction = await Transactions.findOneAndUpdate(
+        { order_id: req.body.order_id },
+        { ...req.body },
+        { new: true }
+    );
+    if (!transaction) {
+        return res.status(404).send("Transaction not found");
+    }
+    // await Transactions.create({
+    //     ...req.body,
+    // });
 
     return res.status(200).json(new ApiResponse(200, { body: req.body }, "Transaction updated."))
 })
