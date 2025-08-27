@@ -107,7 +107,8 @@ const updateReload = asyncHandler(async (req, res) => {
 })
 
 const getStats = asyncHandler(async (req, res) => {
-const totalMembers = await Transactions.distinct("user_id", { payment_status: "finished" });
+ const uniqueUsers = await Transactions.distinct("user_id", { payment_status: "finished" });
+    const totalMembers = uniqueUsers.length==0?0:uniqueUsers.length ;
     // const totalMembers = await User.countDocuments({ status: 1 })
     const total_investments_result = await Transactions.aggregate([
         { $match: { payment_status: "finished" } },
