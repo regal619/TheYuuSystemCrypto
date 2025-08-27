@@ -182,7 +182,8 @@ const getUser = asyncHandler(async (req, res) => {
         { $match: { payment_status: "finished" } },
         { $group: { _id: null, total: { $sum: "$price_amount" } } }
     ]);
-    const active_members = await User.countDocuments({ status: 1 })
+    // const active_members = await User.countDocuments({ status: 1 })
+    const active_members = await Transactions.distinct("user_id", { payment_status: "finished" });
 
     return res.status(200).send(new ApiResponse(200, { user: req.user, total_investments, active_members }, "User fetched successfully"))
 })
