@@ -70,7 +70,7 @@ const registerUser = asyncHandler(async (req, res) => {
         return res.status(500).send(new ApiError(500, "Something went wrong while registering user"))
     }
 
-    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id)
+    // const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id)
 
     const code = generateVerificationCode();
     const verificationCode = { "verificationCode": code }

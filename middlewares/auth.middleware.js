@@ -19,7 +19,14 @@ const verifyJwt = asyncHandler(async (req, res, next) => {
             return res.status(400).send(new ApiError(400, "Invalid Access Token"))
         }
 
-        req.user = user
+        // to check the index number of the user
+        let indexNumber = null;
+        if (user) {
+            indexNumber = await User.countDocuments({ _id: { $lt: user._id } }) + 1;
+        }
+
+        // req.user = user
+        req.user = { ...user.toObject(), userNumber: indexNumber }
         next()
     } catch (error) {
         res.status(500).send(new ApiError(500, error.message || "Invalid Access Token"))
