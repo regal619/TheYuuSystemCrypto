@@ -57,11 +57,11 @@ const registerUser = asyncHandler(async (req, res) => {
         return res.status(409).send(new ApiError(409, "This user already exists"))
     }
 
+    const total_users = await User.countDocuments({})
+
     let user = await User.create({
         ...req.body,
-        // coordinators: 1,
-        // activity: 1,
-        // isAdmin: true
+        userNumber: (total_users + 1).toString().padStart(3, '0')
     })
 
     const createdUser = await User.findById(user._id).select("-password -refreshToken")

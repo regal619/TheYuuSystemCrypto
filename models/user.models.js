@@ -27,6 +27,12 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true
         },
+        userNumber: {
+            type: String,
+            unique: true,
+            index: true,
+            required: true
+        },
         refreshToken: {
             type: String,
         },
