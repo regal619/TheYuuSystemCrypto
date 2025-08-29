@@ -9,7 +9,7 @@ const Transactions = require("../models/transactions.models.js");
 
 // const backHost = process.env.Backend_HOST
 // const frontHost = process.env.Frontend_HOST
-const backHost = process.env.BASE_URL
+// const backHost = process.env.BASE_URL
 const frontHost = process.env.FRONTEND_URL
 
 function generateVerificationCode() {
