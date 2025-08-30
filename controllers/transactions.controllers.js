@@ -128,6 +128,7 @@ const createTransaction = asyncHandler(async (req, res) => {
         order_id: orderId || `don-${Date.now()}`,
         order_description: note || "Donation",
         is_fee_paid_by_user: true,
+        // is_fixed_rate: true,
         ipn_callback_url: `${process.env.BASE_URL}/transactions/donate/ipn`,
         // ipn_callback_url: `${process.env.BASE_URL}/api/v1/transactions/donate/ipn`,
         success_url: `${process.env.FRONTEND_URL}/#/payement/success`,
